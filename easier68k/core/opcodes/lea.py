@@ -13,10 +13,7 @@ class Lea(Opcode):
 
 
 class Lea(Opcode):
-    # size should always be opsize long, per the manual
-    valid_sizes = [OpSize.LONG]
-    
-    def __init__(self, params: list, size: OpSize = OpSize.LONG):
+    def __init__(self, params: list):
         assert len(params) == 2
         assert isinstance(params[0], AssemblyParameter)
         assert isinstance(params[1], AssemblyParameter)
@@ -27,9 +24,6 @@ class Lea(Opcode):
         # Check that the destination is of a proper type
         assert params[1].mode == EAMode.ARD  # Can only take address register direct
         self.dest = params[1]
-
-        assert size in Lea.valid_sizes
-        self.size = size
 
     def assemble(self) -> bytearray:
         """
@@ -55,7 +49,7 @@ class Lea(Opcode):
         :return: Nothing
         """
 
-        val_len = self.size.get_number_of_bytes()
+        val_len = OpSize.LONG.get_number_of_bytes()
 
         # get the value of the source
         src_val = self.src.get_value(simulator, val_len)
@@ -76,7 +70,6 @@ class Lea(Opcode):
             to_increment += OpSize.LONG.value
 
         simulator.increment_program_counter(to_increment)
-
 
     def __str__(self):
         # Makes this a bit easier to read in doctest output
@@ -177,7 +170,7 @@ class Lea(Opcode):
                                              [mode for mode in EAMode if mode is not EAMode.ARD]])[:2]  # All but ARD
 
     @classmethod
-    def from_binary(cls, data: bytearray) -> (Lea, int):
+    def disassemble_instruction(cls, data: bytearray) -> (Lea, int):
         """
         Parses some raw data into an instance of the opcode class
 

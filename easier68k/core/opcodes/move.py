@@ -291,10 +291,10 @@ class Move(Opcode):
 
         wordsUsed = 1
 
-        src_EA = parse_ea_from_binary(source_mode_bin, source_register_bin, size, True, data[wordsUsed*2:])
+        src_EA = parse_ea_from_binary(source_mode_bin, source_register_bin, size, data[wordsUsed * 2:])
         wordsUsed += src_EA[1]
 
-        dest_EA = parse_ea_from_binary(destination_mode_bin, destination_register_bin, size, False, data[wordsUsed*2:])
+        dest_EA = parse_ea_from_binary(destination_mode_bin, destination_register_bin, size, data[wordsUsed * 2:])
 
         # when making the new Move, need to convert that MoveSize back into an OpSize
         return cls((src_EA[0], dest_EA[0]), size)
@@ -558,10 +558,10 @@ class Movea(Opcode):
 
         wordsUsed = 1
 
-        src_EA = parse_ea_from_binary(source_mode_bin, source_register_bin, size, True, data[wordsUsed*2:])
+        src_EA = parse_ea_from_binary(source_mode_bin, source_register_bin, size, data[wordsUsed * 2:])
         wordsUsed += src_EA[1]
 
-        dest_EA = parse_ea_from_binary(destination_mode_bin, destination_register_bin, size, False, data[wordsUsed*2:])
+        dest_EA = parse_ea_from_binary(destination_mode_bin, destination_register_bin, size, data[wordsUsed * 2:])
 
         # when making the new Move, need to convert that MoveSize back into an OpSize
         return cls([src_EA[0], dest_EA[0]], size)

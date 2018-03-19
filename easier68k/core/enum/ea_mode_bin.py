@@ -85,17 +85,13 @@ def parse_from_ea_mode_regfirst(mode: EAMode) -> str:
         return "000{0:03b}".format(EAModeBinary.MODE_AWA)
 
 
-def parse_ea_from_binary(mode: int, register: int, size: OpSize, is_source: bool, data: bytearray) -> (AssemblyParameter, int):
+def parse_ea_from_binary(mode: int, register: int, size: OpSize, data: bytearray) -> (AssemblyParameter, int):
     """
     Takes in the paramaters and returns a newly constructed EAMode and the amount of
     words of data that it used. If the paramaters were illegal in any way then
     (None, 0) is returned
-
-    Test that it handles source and destination behaviors properly
-    >>> parse_ea_from_binary(EAModeBinary.MODE_IMM, EAModeBinary.REGISTER_IMM, OpSize.BYTE, False, bytearray.fromhex('A0'))
-    (None, 0)
     
-    >>> m = parse_ea_from_binary(EAModeBinary.MODE_IMM, EAModeBinary.REGISTER_IMM, OpSize.BYTE, True, bytearray.fromhex('A0'))
+    >>> m = parse_ea_from_binary(EAModeBinary.MODE_IMM,EAModeBinary.REGISTER_IMM,OpSize.BYTE,bytearray.fromhex('A0'))
 
     >>> str(m[0])
     'EA Mode: EAMode.IMM, Data: 160'
@@ -103,7 +99,7 @@ def parse_ea_from_binary(mode: int, register: int, size: OpSize, is_source: bool
     1
 
     
-    >>> m = parse_ea_from_binary(EAModeBinary.MODE_DRD, 0b010, OpSize.WORD, True, bytearray())
+    >>> m = parse_ea_from_binary(EAModeBinary.MODE_DRD,0b010,OpSize.WORD,bytearray())
 
     >>> str(m[0])
     'EA Mode: EAMode.DRD, Data: 2'
@@ -111,7 +107,7 @@ def parse_ea_from_binary(mode: int, register: int, size: OpSize, is_source: bool
     0
 
     
-    >>> m = parse_ea_from_binary(EAModeBinary.MODE_ARI, 0b110, OpSize.LONG, True, bytearray())
+    >>> m = parse_ea_from_binary(EAModeBinary.MODE_ARI,0b110,OpSize.LONG,bytearray())
 
     >>> str(m[0])
     'EA Mode: EAMode.ARI, Data: 6'
@@ -119,7 +115,7 @@ def parse_ea_from_binary(mode: int, register: int, size: OpSize, is_source: bool
     0
 
     
-    >>> m = parse_ea_from_binary(EAModeBinary.MODE_ALA, EAModeBinary.REGISTER_ALA, OpSize.LONG, False, bytearray.fromhex('00011000'))
+    >>> m = parse_ea_from_binary(EAModeBinary.MODE_ALA,EAModeBinary.REGISTER_ALA,OpSize.LONG,bytearray.fromhex('00011000'))
 
     >>> str(m[0])
     'EA Mode: EAMode.ALA, Data: 69632'
@@ -129,7 +125,6 @@ def parse_ea_from_binary(mode: int, register: int, size: OpSize, is_source: bool
     :param mode: the binary mode bits retrieved from the instruction
     :param register: the binary register bits retrieved from the instruction
     :param size: the alphabetical size (i.e. one of 'BLW')
-    :param is_source: is this the source or destination ea?
     :param data: extra data that follows after the command that might be needed
     :return: an EAMode constructed from the given parameters and how many words were used from data
     """
@@ -154,7 +149,7 @@ def parse_ea_from_binary(mode: int, register: int, size: OpSize, is_source: bool
             bytesUsed += 4
             ea_mode = 6
 
-        elif is_source and register == EAModeBinary.REGISTER_IMM:
+        elif register == EAModeBinary.REGISTER_IMM:
             if size in [OpSize.WORD, OpSize.BYTE]:
                 # TODO: Do we check for bytes that the left byte is all
                 # zeros, or do we do this where we assume the assembler is right
