@@ -3,6 +3,7 @@ from ...core.models.assembly_parameter import AssemblyParameter
 from ...core.enum import ea_mode_bin
 from ...core.enum.ea_mode_bin import parse_ea_from_binary
 from ...simulator.m68k import M68K
+from ...core.enum.condition_status_code import ConditionStatusCode
 from ...core.util.split_bits import split_bits
 from ...core.opcodes.opcode import Opcode
 from ...core.util import opcode_util
@@ -61,7 +62,8 @@ class Cmp(Opcode):
         reg_val = self.register.get_value(simulator, val_len)
         result = reg_val - ea_val
 
-        # TODO: Implement. N = if result is negative, Z is if the result is zero
+        simulator.set_condition_status_code(ConditionStatusCode.N, result < 0)
+        simulator.set_condition_status_code(ConditionStatusCode.Z, result == 0)
 
         simulator.increment_program_counter(2)
 
