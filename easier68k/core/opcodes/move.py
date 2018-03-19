@@ -6,8 +6,9 @@ from ...simulator.m68k import M68K
 from ...core.opcodes.opcode import Opcode
 from ...core.util.split_bits import split_bits
 from ...core.util import opcode_util
-from ..util.parsing import parse_assembly_parameter, from_str_util
+from ..util.parsing import parse_assembly_parameter
 from ..models.assembly_parameter import AssemblyParameter
+import binascii
 
 
 class Move(Opcode):  # Forward declaration
@@ -15,6 +16,10 @@ class Move(Opcode):  # Forward declaration
 
 
 class Movea(Opcode):  # Forward declaration
+    pass
+
+
+class Moveq(Opcode):  # Forward declaration
     pass
 
 
@@ -209,7 +214,7 @@ class Move(Opcode):
         :return: Whether the given command is valid and a list of issues/warnings encountered
         """
         return opcode_util.n_param_is_valid(command, parameters, "MOVE", 2, param_invalid_modes=[[EAMode.ARD],
-                                              [EAMode.ARD, EAMode.IMM]])
+                                              [EAMode.ARD, EAMode.IMM]])[:2]
 
     @classmethod
     def disassemble_instruction(cls, data: bytearray) -> Opcode:
@@ -267,11 +272,11 @@ class Move(Opcode):
         first_word = int.from_bytes(data[0:2], 'big')
 
         [opcode_bin,
-        size_bin,
-        destination_register_bin,
-        destination_mode_bin,
-        source_mode_bin,
-        source_register_bin] = split_bits(first_word, [2, 2, 3, 3, 3, 3])
+         size_bin,
+         destination_register_bin,
+         destination_mode_bin,
+         source_mode_bin,
+         source_register_bin] = split_bits(first_word, [2, 2, 3, 3, 3, 3])
 
         # check opcode
         if opcode_bin != 0b00:
@@ -486,7 +491,7 @@ class Movea(Opcode):
         :return: Whether the given command is valid and a list of issues/warnings encountered
         """
         return opcode_util.n_param_is_valid(command, parameters, "MOVEA", 2, Movea.valid_sizes, param_invalid_modes=[[],
-                                            [mode for mode in EAMode if mode is not EAMode.ARD]])  # Select all but ARD
+                                            [mode for mode in EAMode if mode is not EAMode.ARD]])[:2]  # Select all but ARD
 
     @classmethod
     def disassemble_instruction(cls, data: bytearray) -> Opcode:
@@ -534,15 +539,11 @@ class Movea(Opcode):
         first_word = int.from_bytes(data[0:2], 'big')
 
         [opcode_bin,
-        size_bin,
-        destination_register_bin,
-        destination_mode_bin,
-        source_mode_bin,
-        source_register_bin] = split_bits(first_word, [2, 2, 3, 3, 3, 3])
-        test = ''
-        for x in split_bits(first_word, [2, 2, 3, 3, 3, 3]):
-            test += str(x) + ", "
-        #assert False, test
+         size_bin,
+         destination_register_bin,
+         destination_mode_bin,
+         source_mode_bin,
+         source_register_bin] = split_bits(first_word, [2, 2, 3, 3, 3, 3])
 
         # check opcode
         if opcode_bin != 0b00:
@@ -581,3 +582,194 @@ class Movea(Opcode):
         :return: The parsed command
         """
         return opcode_util.n_param_from_str(command, parameters, Movea, 2, OpSize.WORD)
+
+
+class Moveq(Opcode):
+
+    def __init__(self, params: list):
+        assert len(params) == 2
+        assert isinstance(params[0], AssemblyParameter)
+        assert isinstance(params[1], AssemblyParameter)
+        # Check that the src is of the proper type (for example, can't move from an address register for a move command)
+        assert params[0].mode == EAMode.IMM  # MOVEQ has to move immediates
+        assert len('{0:b}'.format(params[0].data)) <= 8, 'MOVEQ immediate data must be <= 8 bits long'
+        self.src = params[0]
+
+        # Check that the destination is of a proper type
+        assert params[1].mode == EAMode.DRD  # MOVEQ has to move to a data register
+        self.dest = params[1]
+
+    def assemble(self) -> bytearray:
+        """
+        >>> binascii.hexlify(Moveq.assemble(Moveq([parse_assembly_parameter('#$AB'), parse_assembly_parameter('D0')])))
+        b'70ab'
+
+        >>> binascii.hexlify(Moveq.assemble(Moveq([parse_assembly_parameter('#$AB'), parse_assembly_parameter('D3')])))
+        b'76ab'
+
+        Assembles this opcode into hex to be inserted into memory
+        :return: The hex version of this opcode
+        """
+        # Create a binary string to append to, which we'll convert to hex at the end
+        tr = '0111{0:03b}0'.format(self.dest.data)  # First 8 bits are the data register + some padding
+        # Append immediate to the opcode itself
+        tr += '{0:08b}'.format(self.src.data)
+
+        to_return = bytearray.fromhex(hex(int(tr, 2))[2:])  # Convert to a bytearray
+        return to_return
+
+    def execute(self, simulator: M68K):
+        """
+        Executes this command in a simulator
+        :param simulator: The simulator to execute the command on
+        :return: Nothing
+        """
+        # get the length
+        val_length = self.size.get_number_of_bytes()
+
+        # get the value of src from the simulator
+        src_val = self.src.get_value(simulator, val_length)
+
+        # and set the value
+        self.dest.set_value(simulator, src_val, val_length)
+
+        # increment the program counter by the length of the instruction (1 word)
+        simulator.increment_program_counter(OpSize.WORD.value)
+
+    def __str__(self):
+        # Makes this a bit easier to read in doctest output
+        return 'Moveq command: src {}, dest {}'.format(self.src, self.dest)
+
+    @classmethod
+    def command_matches(cls, command: str) -> bool:
+        """
+        Checks whether a command string is an instance of this command type
+        :param command: The command string to check (e.g. 'MOVE.B', 'LEA', etc.)
+        :return: Whether the string is an instance of this command type
+        """
+        return opcode_util.command_matches(command, 'MOVEQ')
+
+    @classmethod
+    def get_word_length(cls, command: str, parameters: str) -> int:
+        """
+        >>> Moveq.get_word_length('MOVEQ', '#$AB, D0')
+        1
+
+        >>> Moveq.get_word_length('MOVEQ', '#$AB, D7')
+        1
+
+        Gets what the end length of this command will be in memory
+        :param command: The text of the command itself (e.g. "LEA", "MOVE.B", etc.)
+        :param parameters: The parameters after the command
+        :return: The length of the bytes in memory in words, as well as a list of warnings or errors encountered
+        """
+
+        return 1  # It's always 1, that's the point of MOVEQ
+
+    @classmethod
+    def is_valid(cls, command: str, parameters: str) -> (bool, list):
+        """
+        Tests whether the given command is valid
+
+        >>> Moveq.is_valid('MOVEQ', '#$AA, D0')[0]
+        True
+
+        >>> Moveq.is_valid('MOVEQ', '#$ABC, D0')[0]
+        False
+
+        >>> Moveq.is_valid('MOVEQ.W', '#$AB, D0')[0]
+        False
+
+        >>> Moveq.is_valid('MOVEQ', 'A0, D0')[0]
+        False
+
+        >>> Moveq.is_valid('MOVEQ', '#$AB, A0')[0]
+        False
+
+        >>> Moveq.is_valid('MOV', '#$AB, D0')[0]
+        False
+
+        :param command: The command itself (e.g. 'MOVE.B', 'LEA', etc.)
+        :param parameters: The parameters after the command (such as the source and destination of a move)
+        :return: Whether the given command is valid and a list of issues/warnings encountered
+        """
+        # Do the standard checks
+        valid, issues, size, params = opcode_util.n_param_is_valid(command, parameters, "MOVEQ", 2, valid_sizes=None,
+                                            param_invalid_modes=[[mode for mode in EAMode if mode is not EAMode.IMM],
+                                            [mode for mode in EAMode if mode is not EAMode.DRD]])  # Only IMM to DRD
+
+        if not valid:
+            return valid, issues
+
+        # Check for valid length
+        if len('{0:b}'.format(params[0].data)) > 8:
+            issues.append('MOVEQ immediate data must be <= 8 bits long')
+            return False, issues
+
+        return valid, issues
+
+    @classmethod
+    def disassemble_instruction(cls, data: bytearray) -> Opcode:
+        """
+        This has a non-move opcode
+        >>> Moveq.disassemble_instruction(bytearray.fromhex('D280'))
+
+
+        MOVEQ #$AA, D0
+        >>> op = Moveq.disassemble_instruction(bytearray.fromhex('70AA'))
+
+        >>> str(op.src)
+        'EA Mode: EAMode.IMM, Data: 170'
+
+        >>> str(op.dest)
+        'EA Mode: EAMode.DRD, Data: 0'
+
+        MOVEQ #$AB, D3
+        >>> op = Moveq.disassemble_instruction(bytearray.fromhex('76AB'))
+
+        >>> str(op.src)
+        'EA Mode: EAMode.IMM, Data: 171'
+
+        >>> str(op.dest)
+        'EA Mode: EAMode.DRD, Data: 3'
+
+        Parses some raw data into an instance of the opcode class
+        :param data: The data used to convert into an opcode instance
+        :return: The constructed instance or none if there was an error and
+            the amount of data in words that was used (e.g. extra for immediate
+            data) or 0 for not a match
+        """
+        assert len(data) == 2, 'opcode size is at least 1 word'
+
+        # 'big' endian byte order
+        first_word = int.from_bytes(data[0:2], 'big')
+
+        [opcode_bin,
+         destination_register_bin,
+         _,
+         data_bin] = split_bits(first_word, [4, 3, 1, 8])
+
+        # check opcode
+        if opcode_bin != 0b0111:
+            return None
+
+        dest_EA = AssemblyParameter(EAMode.DRD, destination_register_bin)
+
+        src_EA = AssemblyParameter(EAMode.IMM, data_bin)
+
+        # when making the new Move, need to convert that MoveSize back into an OpSize
+        return cls([src_EA, dest_EA])
+
+    @classmethod
+    def from_str(cls, command: str, parameters: str):
+        """
+        Parses a MOVEQ command from text.
+
+        >>> str(Moveq.from_str('MOVEQ', '#$AA, D0'))
+        'Moveq command: src EA Mode: EAMode.IMM, Data: 170, dest EA Mode: EAMode.DRD, Data: 0'
+
+        :param command: The command itself (e.g. 'MOVE.B', 'LEA', etc.)
+        :param parameters: The parameters after the command (such as the source and destination of a move)
+        :return: The parsed command
+        """
+        return opcode_util.n_param_from_str(command, parameters, Moveq, 2, None)

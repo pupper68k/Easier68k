@@ -114,16 +114,10 @@ class Lea(Opcode):
         :param parameters: The parameters after the command
         :return: The length of the bytes in memory in words, as well as a list of warnings or errors encountered
         """
-        valid, issues = cls.is_valid(command, parameters)
-        if not valid:
-            return 0
-        # We can forego asserts in here because we've now confirmed this is valid assembly code
-
         # Split the parameters into EA modes
         params = parameters.split(',')
 
         if len(params) != 2:  # We need exactly 2 parameters
-            issues.append(('Invalid syntax (missing a parameter/too many parameters)', 'ERROR'))
             return 0
 
         src = parse_assembly_parameter(params[0].strip())  # Parse the source and make sure it parsed right
@@ -180,7 +174,7 @@ class Lea(Opcode):
         """
         return opcode_util.n_param_is_valid(command, parameters, "LEA", 2, None, None,
                                             [[EAMode.DRD, EAMode.ARD, EAMode.ARIPD, EAMode.ARIPI],
-                                             [mode for mode in EAMode if mode is not EAMode.ARD]])  # Select all but ARD
+                                             [mode for mode in EAMode if mode is not EAMode.ARD]])[:2]  # All but ARD
 
     @classmethod
     def from_binary(cls, data: bytearray) -> (Lea, int):

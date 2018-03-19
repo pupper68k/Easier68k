@@ -191,7 +191,7 @@ def ea_to_binary_post_op(ea: EAMode, size: OpSize) -> str:
 
 
 def n_param_is_valid(command: str, parameters: str, opcode: str, n: int=2, valid_sizes=[OpSize.LONG, OpSize.WORD, OpSize.BYTE],
-                       default_size=OpSize.WORD, param_invalid_modes=[]) -> (bool, list):
+                       default_size=OpSize.WORD, param_invalid_modes=[]) -> (bool, list, OpSize, list):
     """
     Tests whether the given command is valid
 
@@ -202,7 +202,8 @@ def n_param_is_valid(command: str, parameters: str, opcode: str, n: int=2, valid
     :param default_size: the default size for the command (can be None if it doesn't take a command)
     :param n: the number of parameters to parse
     :param param_invalid_modes: list of lists of invalid parameter modes (in order)
-    :return: Whether the given command is valid and a list of issues/warnings encountered
+    :return: Whether the given command is valid and a list of issues/warnings encountered (the standard is_valid
+             returns), and then the parsed size and parameters (for extra validation if necessary)
     """
     issues = []
     try:
@@ -232,9 +233,9 @@ def n_param_is_valid(command: str, parameters: str, opcode: str, n: int=2, valid
             parsed.append(parse_assembly_parameter(params[i]))
     except AssertionError as e:
         issues.append((e.args[0], 'ERROR'))
-        return False, issues
+        return False, issues, None, None
 
-    return True, issues
+    return True, issues, size, parsed
 
 
 def n_param_from_str(command: str, parameters: str, opcode_cls, n: int=2, default_size=OpSize.WORD):
