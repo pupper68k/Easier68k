@@ -15,6 +15,10 @@ class Cmp(Opcode):  # Forward declaration
     pass
 
 
+class Cmpa(Opcode):  # Forward declaration
+    pass
+
+
 class Cmp(Opcode):
     valid_sizes = [OpSize.BYTE, OpSize.WORD, OpSize.LONG]
 
@@ -68,7 +72,7 @@ class Cmp(Opcode):
         simulator.increment_program_counter(2)
 
     def __str__(self):
-        return 'CMP command: ea {}, register {}'.format(self.ea, self.register)
+        return 'CMP command: size {}, ea {}, register {}'.format(self.size, self.ea, self.register)
 
     @classmethod
     def command_matches(cls, command: str) -> bool:
@@ -242,13 +246,248 @@ class Cmp(Opcode):
         Parses a CMP command from text.
 
         >>> str(Cmp.from_str('CMP.B', '-(A0), D3'))
-        'CMP command: ea EA Mode: EAMode.ARIPD, Data: 0, register EA Mode: EAMode.DRD, Data: 3'
+        'CMP command: size OpSize.BYTE, ea EA Mode: EAMode.ARIPD, Data: 0, register EA Mode: EAMode.DRD, Data: 3'
 
         >>> str(Cmp.from_str('CMP.W', '($0A0B).W, D5'))
-        'CMP command: ea EA Mode: EAMode.AWA, Data: 2571, register EA Mode: EAMode.DRD, Data: 5'
+        'CMP command: size OpSize.WORD, ea EA Mode: EAMode.AWA, Data: 2571, register EA Mode: EAMode.DRD, Data: 5'
 
         :param command: The command itself (e.g. 'MOVE.B', 'LEA', etc.)
         :param parameters: The parameters after the command (such as the source and destination of a move)
         :return: The parsed command
         """
         return opcode_util.n_param_from_str(command, parameters, Cmp, 2, OpSize.WORD)
+
+
+class Cmpa(Opcode):
+    valid_sizes = [OpSize.WORD, OpSize.LONG]
+
+    def __init__(self, params: list, size: OpSize=OpSize.WORD):
+        assert len(params) == 2
+        assert isinstance(params[0], AssemblyParameter)
+        assert isinstance(params[1], AssemblyParameter)
+
+        # Any EA mode is valid...
+        self.ea = params[0]
+
+        # ...while the register param has to be DRD
+        assert params[1].mode == EAMode.ARD
+        self.register = params[1]
+
+        assert size in Cmpa.valid_sizes
+        self.size = size
+
+    def assemble(self) -> bytearray:
+        """
+        Assembles this opcode into hex to be inserted into memory
+        :return: The hex version of this opcode
+        """
+        tr = '1011'
+        tr += '{0:03b}'.format(self.register.data)
+        if self.size == OpSize.WORD:
+            tr += '011'
+        elif self.size == OpSize.LONG:
+            tr += '111'
+
+        tr += ea_mode_bin.parse_from_ea_mode_modefirst(self.ea)
+
+        return bytearray.fromhex(hex(int(tr, 2))[2:])
+
+    def execute(self, simulator: M68K):
+        """
+        Executes this command in a simulator
+        :param simulator: The simulator to execute the command on
+        :return: Nothing
+        """
+        val_len = self.size.get_number_of_bytes()
+        ea_val = self.ea.get_value(simulator, val_len)
+        reg_val = self.register.get_value(simulator, val_len)
+        result = reg_val - ea_val
+
+        simulator.set_condition_status_code(ConditionStatusCode.N, result < 0)
+        simulator.set_condition_status_code(ConditionStatusCode.Z, result == 0)
+
+        simulator.increment_program_counter(2)
+
+    def __str__(self):
+        return 'CMPA command: size {}, ea {}, register {}'.format(self.size, self.ea, self.register)
+
+    @classmethod
+    def command_matches(cls, command: str) -> bool:
+        """
+        Checks whether a command string is an instance of this command type
+        :param command: The command string to check (e.g. 'MOVE.B', 'LEA', etc.)
+        :return: Whether the string is an instance of this command type
+        """
+        return opcode_util.command_matches(command, 'CMPA')
+
+    @classmethod
+    def get_word_length(cls, command: str, parameters: str) -> int:
+        """
+        >>> Cmpa.get_word_length('CMPA.W', '(A0), A1')
+        1
+
+        >>> Cmpa.get_word_length('CMPA.W', '#$0, A3')
+        2
+
+        >>> Cmpa.get_word_length('CMPA.L', '#$ABCDE, A0')
+        3
+
+        >>> Cmpa.get_word_length('CMPA.L', '#$A, A3')
+        3
+
+        >>> Cmpa.get_word_length('CMPA.L', '($AAAA).L, A6')
+        3
+
+        >>> Cmpa.get_word_length('CMPA.W', '($AAAA).W, A5')
+        2
+
+        Gets what the end length of this command will be in memory
+        :param command: The text of the command itself (e.g. "LEA", "MOVE.B", etc.)
+        :param parameters: The parameters after the command
+        :return: The length of the bytes in memory in words, as well as a list of warnings or errors encountered
+        """
+        parts = command.split('.')  # Split the command by period to get the size of the command
+        if len(parts) == 1:  # Use the default size
+            size = OpSize.WORD
+        else:
+            size = OpSize.parse(parts[1])
+
+        # Split the parameters into EA modes
+        params = parameters.split(',')
+
+        if len(params) != 2:  # We need exactly 2 parameters
+            return 0
+
+        ea = parse_assembly_parameter(params[0].strip())  # Parse the source and make sure it parsed right
+
+        length = 1  # Always 1 word not counting additions to end
+
+        if ea.mode == EAMode.IMM:  # If we're moving an immediate we have to append the value afterwards
+            if size == OpSize.LONG:
+                length += 2
+            else:
+                length += 1
+
+        if ea.mode == EAMode.AWA:  # Appends a word
+            length += 1
+
+        if ea.mode == EAMode.ALA:  # Appends a long, so 2 words
+            length += 2
+
+        # No register checks since it'll always be ARD
+
+        return length
+
+    @classmethod
+    def is_valid(cls, command: str, parameters: str) -> (bool, list):
+        """
+        Tests whether the given command is valid
+
+        >>> Cmpa.is_valid('CMPA.W', 'D0, A1')[0]
+        True
+
+        >>> Cmpa.is_valid('CMPA.W', 'A3, A7')[0]
+        True
+
+        >>> Cmpa.is_valid('CMPA.L', '#$ABCD, A3')[0]
+        True
+
+        >>> Cmpa.is_valid('CMPA.W', '($0A0B).L, A5')[0]
+        True
+
+        >>> Cmpa.is_valid('COMP.W', '#$AB, A3')[0]
+        False
+
+        >>> Cmpa.is_valid('CMPA.G', 'D0, A7')[0]
+        False
+
+        :param command: The command itself (e.g. 'MOVE.B', 'LEA', etc.)
+        :param parameters: The parameters after the command (such as the source and destination of a move)
+        :return: Whether the given command is valid and a list of issues/warnings encountered
+        """
+        return opcode_util.n_param_is_valid(command, parameters, "CMPA", 2, Cmpa.valid_sizes, OpSize.WORD,
+                                            param_invalid_modes=[[], [mode for mode in EAMode if mode is not EAMode.ARD]][:2])  # Select all but ARD
+
+    @classmethod
+    def disassemble_instruction(cls, data: bytearray) -> Opcode:
+        """
+        This has a non-CMPA opcode
+        >>> Cmpa.disassemble_instruction(bytearray.fromhex('D280'))
+
+
+        CMPA.W #0, A1
+        >>> op = Cmpa.disassemble_instruction(bytearray.fromhex('B2FC0000'))
+
+        >>> str(op.ea)
+        'EA Mode: EAMode.IMM, Data: 0'
+
+        >>> str(op.register)
+        'EA Mode: EAMode.ARD, Data: 1'
+
+        CMPA.W D3, A0
+        >>> op = Cmpa.disassemble_instruction(bytearray.fromhex('B0C3'))
+
+        >>> str(op.ea)
+        'EA Mode: EAMode.DRD, Data: 3'
+
+        >>> str(op.register)
+        'EA Mode: EAMode.ARD, Data: 0'
+
+        CMPA.L ($0A0B0C0D).L, A7
+        >>> op = Cmpa.disassemble_instruction(bytearray.fromhex('BFF9000A0B0C'))
+
+        >>> str(op.ea)
+        'EA Mode: EAMode.ALA, Data: 658188'
+
+        >>> str(op.register)
+        'EA Mode: EAMode.ARD, Data: 7'
+
+        Parses some raw data into an instance of the opcode class
+        :param data: The data used to convert into an opcode instance
+        :return: The constructed instance or none if there was an error and
+            the amount of data in words that was used (e.g. extra for immediate
+            data) or 0 for not a match
+        """
+        assert len(data) >= 2, 'Opcode size is at least one word'
+
+        first_word = int.from_bytes(data[0:2], 'big')
+        [opcode_bin,
+         register_bin,
+         opmode_bin,
+         ea_mode_bin,
+         ea_reg_bin] = split_bits(first_word, [4, 3, 3, 3, 3])
+
+        if opcode_bin != 0b1011:
+            return None
+
+        if opmode_bin == 0b11:
+            size = OpSize.WORD
+        elif opmode_bin == 0b111:
+            size = OpSize.LONG
+        else:
+            return None
+
+        words_used = 1
+
+        register = AssemblyParameter(EAMode.ARD, register_bin)
+
+        ea = parse_ea_from_binary(ea_mode_bin, ea_reg_bin, size, data[words_used * 2:])
+
+        return cls([ea[0], register], size)
+
+    @classmethod
+    def from_str(cls, command: str, parameters: str):
+        """
+        Parses a CMPA command from text.
+
+        >>> str(Cmpa.from_str('CMPA.L', '-(A0), A3'))
+        'CMPA command: size OpSize.LONG, ea EA Mode: EAMode.ARIPD, Data: 0, register EA Mode: EAMode.ARD, Data: 3'
+
+        >>> str(Cmpa.from_str('CMPA.W', '($0A0B).W, A5'))
+        'CMPA command: size OpSize.WORD, ea EA Mode: EAMode.AWA, Data: 2571, register EA Mode: EAMode.ARD, Data: 5'
+
+        :param command: The command itself (e.g. 'MOVE.B', 'LEA', etc.)
+        :param parameters: The parameters after the command (such as the source and destination of a move)
+        :return: The parsed command
+        """
+        return opcode_util.n_param_from_str(command, parameters, Cmpa, 2, OpSize.WORD)
