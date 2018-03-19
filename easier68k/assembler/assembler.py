@@ -112,8 +112,19 @@ def parse(text: str) -> (ListFile, list):
 
         # Replace all substitutions in the current line with their corresponding values
         contents = replace_equates(contents, equates)
+
         # Replace all labels with temporary addresses because we don't know their actual values yet
         contents = replace_labels_with_temps(contents, labels)
+
+        # TODO: THIS COULD CAUSE ISSUES with super large jumps in branching calls.
+        #       At the time of this writing I don't have a way to get the address displacement in this phase, which
+        #       would then let me determine the size of instruction I need. For now I'm just going to use the
+        #       medium size (16 bits). This is probably large enough for any reasonable program, but this is worth
+        #       noting.
+
+        if opcode is 'BRA':
+            # Branches are a weird case because they use relative addressing: see note in core/opcodes/branches.py
+            contents += ', #${:x}'.format(current_memory_location)
 
         if opcode == 'ORG':  # This will shift our current memory location, it's a special case
             try:
@@ -156,6 +167,10 @@ def parse(text: str) -> (ListFile, list):
 
         # Replace all memory labels with their proper values (that's the difference in this step)
         contents = replace_label_addresses(contents, label_addresses)
+
+        # Branches are a weird case because they use relative addressing: see note in core/opcodes/branches.py
+        if opcode is 'BRA':
+            contents += ', #${:x}'.format(current_memory_location)
 
         if opcode == 'ORG':  # This will shift our current memory location, it's a special case
             try:

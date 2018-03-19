@@ -22,6 +22,7 @@ test_modules = [
     'easier68k.core.opcodes.simhalt',
     'easier68k.core.opcodes.trap',
     'easier68k.core.opcodes.cmp',
+    'easier68k.core.opcodes.branches',
     'easier68k.core.models.list_file',
     'easier68k.core.util.parsing',
     'easier68k.core.enum.ea_mode_bin',
