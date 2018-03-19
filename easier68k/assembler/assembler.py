@@ -122,7 +122,7 @@ def parse(text: str) -> (ListFile, list):
         #       medium size (16 bits). This is probably large enough for any reasonable program, but this is worth
         #       noting.
 
-        if opcode is 'BRA':
+        if opcode == 'BRA':
             # Branches are a weird case because they use relative addressing: see note in core/opcodes/branches.py
             contents += ', #${:x}'.format(current_memory_location)
 
@@ -169,7 +169,7 @@ def parse(text: str) -> (ListFile, list):
         contents = replace_label_addresses(contents, label_addresses)
 
         # Branches are a weird case because they use relative addressing: see note in core/opcodes/branches.py
-        if opcode is 'BRA':
+        if opcode == 'BRA':
             contents += ', #${:x}'.format(current_memory_location)
 
         if opcode == 'ORG':  # This will shift our current memory location, it's a special case

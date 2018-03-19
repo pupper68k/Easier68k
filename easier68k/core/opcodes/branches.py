@@ -23,6 +23,7 @@ class Bra(Opcode):
     # irrelevant once parsed.
     def __init__(self, offset: int, size: OpSize = OpSize.WORD):
         assert isinstance(offset, int)
+        assert size is not None
         self.offset = offset
         self.size = size
 
@@ -35,23 +36,33 @@ class Bra(Opcode):
         :return: The hex version of this opcode
         """
         tr = '01100000'  # The base opcode
+        #assert False, '{:032b}'.format(self.offset)
         if self.size is OpSize.BYTE:
-            xormask = 0xFF
-            onescomp = self.offset ^ xormask
-            twoscomp = onescomp + 0b1
-            tr += '{:08b}'.format(twoscomp)
+            if self.offset & 0x80 == 0x80:
+                xormask = 0xFF
+                onescomp = self.offset ^ xormask
+                twoscomp = onescomp + 0b1
+                tr += '{:08b}'.format(twoscomp)[1:]
+            else:
+                tr += '{:08b}'.format(self.offset)
         elif self.size is OpSize.WORD:
             tr += '00000000'
-            xormask = 0xFFFF
-            onescomp = self.offset ^ xormask
-            twoscomp = onescomp + 0b1
-            tr += '{:016b}'.format(twoscomp)
+            if self.offset & 0x8000 == 0x8000:
+                xormask = 0xFFFF
+                onescomp = self.offset ^ xormask
+                twoscomp = onescomp + 0b1
+                tr += '{:016b}'.format(twoscomp)[1:]
+            else:
+                tr += '{:016b}'.format(self.offset)
         else:  # OpSize.LONG
             tr += '11111111'
-            xormask = 0xFFFFFFFF
-            onescomp = self.offset ^ xormask
-            twoscomp = onescomp + 0b1
-            tr += '{:032b}'.format(twoscomp)
+            if self.offset & 0x80000000 == 0x80000000:
+                xormask = 0xFFFFFFFF
+                onescomp = self.offset ^ xormask
+                twoscomp = onescomp + 0b1
+                tr += '{:032b}'.format(twoscomp)[1:]
+            else:
+                tr += '{:032b}'.format(self.offset)
 
         return bytearray.fromhex(hex(int(tr, 2))[2:])  # Convert to a bytearray
 
@@ -63,9 +74,9 @@ class Bra(Opcode):
         """
         if self.size is OpSize.BYTE:
             length = 2  # Just the opcode word
-        if self.size is OpSize.WORD:
+        elif self.size is OpSize.WORD:
             length = 4  # The opcode word + the word afterwards
-        if self.size is OpSize.LONG:
+        else:  # OpSize.LONG
             length = 6  # The opcode word + the 2 words afterwards
 
         # Move by the offset + the length of this instruction
@@ -238,13 +249,25 @@ class Bra(Opcode):
             current_memory = parse_assembly_parameter(params[1].strip())
             offset = offset_param.data - current_memory.data - 2
 
-        # Two's comp-ify the number
-        xormask = int('1' * offset.bit_length(), 2)
-        onescomp = offset ^ xormask
-        twoscomp = onescomp + 1
-        if twoscomp.bit_length() > 15:  # Uses all 32 bits
-            return cls(offset, OpSize.LONG)
-        elif twoscomp.bit_length() > 7:  # Uses 16 bits
+        if offset == 0:
             return cls(offset, OpSize.WORD)
-        else:  # Uses just 8 bits
+
+        if offset < 0:
+            # Two's comp-ify the number
+            xormask = int('1' * offset.bit_length(), 2)
+            onescomp = offset ^ xormask
+            twoscomp = onescomp + 1
+            if twoscomp.bit_length() > 15:  # Uses all 32 bits
+                return cls(offset, OpSize.LONG)
+            elif twoscomp.bit_length() > 7:  # Uses 16 bits
+                return cls(offset, OpSize.WORD)
+            else:  # Uses just 8 bits
+                return cls(offset, OpSize.BYTE)
+
+        # Offset > 0:
+        if offset.bit_length() > 15:  # Uses all 32 bits
+            return cls(offset, OpSize.LONG)
+        elif offset.bit_length() > 7:  # Uses 16 bits
+            return cls(offset, OpSize.WORD)
+        else:
             return cls(offset, OpSize.BYTE)
