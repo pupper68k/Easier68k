@@ -36,24 +36,6 @@ class EAModeBinary(IntEnum):
     MODE_AWA = 0b111
     REGISTER_AWA = 0b000
 
-# currently missing the offset modes
-VALID_DEST_EA_MODES = [EAModeBinary.MODE_DRD, EAModeBinary.MODE_ARI,
-                       EAModeBinary.MODE_ARIPI, EAModeBinary.MODE_ARIPD,
-                       EAModeBinary.MODE_ALA, EAModeBinary.MODE_AWA]
-
-# currently missing the offset modes
-VALID_SRC_EA_MODES = VALID_DEST_EA_MODES + [EAModeBinary.MODE_ARD, EAModeBinary.MODE_IMM]
-
-# what the hell should I name this?
-# it's the valid destination registers for the 111 mode
-# currently missing the offset modes
-VALID_DEST_EA_111_REGISTERS = [EAModeBinary.REGISTER_ALA, EAModeBinary.REGISTER_AWA]
-
-# what the hell should I name this?
-# it's the valid source registers for the 111 mode
-# currently missing the offset modes
-VALID_SRC_EA_111_REGISTERS = VALID_DEST_EA_111_REGISTERS + [EAModeBinary.REGISTER_IMM]
-
 
 def parse_from_ea_mode_modefirst(mode: EAMode) -> str:
     """
@@ -103,7 +85,7 @@ def parse_from_ea_mode_regfirst(mode: EAMode) -> str:
         return "000{0:03b}".format(EAModeBinary.MODE_AWA)
 
 
-def parse_ea_from_binary(mode: int, register: int, size: OpSize, is_source: bool, data : bytearray) -> (EAMode, int):
+def parse_ea_from_binary(mode: int, register: int, size: OpSize, is_source: bool, data: bytearray) -> (AssemblyParameter, int):
     """
     Takes in the paramaters and returns a newly constructed EAMode and the amount of
     words of data that it used. If the paramaters were illegal in any way then
@@ -153,13 +135,6 @@ def parse_ea_from_binary(mode: int, register: int, size: OpSize, is_source: bool
     """
     bytesUsed = 0
 
-    # check source mode
-    if is_source and not mode in VALID_SRC_EA_MODES:
-        return (None, 0)
-
-    if not is_source and not mode in VALID_DEST_EA_MODES:
-        return (None, 0)
-
     ea_data = register
 
     # these only differ when mode is 0b111
@@ -168,12 +143,6 @@ def parse_ea_from_binary(mode: int, register: int, size: OpSize, is_source: bool
 
     # check source register
     if mode == 0b111:
-        if is_source and not register in VALID_SRC_EA_111_REGISTERS:
-            return (None, 0)
-
-        if not is_source and not register in VALID_DEST_EA_111_REGISTERS:
-            return (None, 0)
-
         # handle the three special cases for when mode is 7
         if register == EAModeBinary.REGISTER_AWA:
             ea_data =  int.from_bytes(data[bytesUsed:bytesUsed+2], 'big')
@@ -217,5 +186,4 @@ def parse_ea_from_binary(mode: int, register: int, size: OpSize, is_source: bool
     elif ea_mode == 7:
         ea_mode = EAMode.AWA
 
-
-    return (AssemblyParameter(ea_mode, ea_data), bytesUsed//2)
+    return AssemblyParameter(ea_mode, ea_data), bytesUsed//2

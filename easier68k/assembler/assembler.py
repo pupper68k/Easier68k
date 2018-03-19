@@ -179,11 +179,12 @@ def parse(text: str) -> (ListFile, list):
         op_class = find_opcode_cls(opcode)
 
         if op_class is None:
-            issues.append(('Opcode {} is not known: skipping and continuing'.format(opcode), 'ERROR'))
+            # Don't append error, we've already seen it before
             continue
 
         # check that the input is valid the opcode at the module level
-        is_valid, issues = op_class.is_valid(opcode, contents)
+        is_valid, more_issues = op_class.is_valid(opcode, contents)
+        # don't append the issues because they've all already been seen before
 
         # if valid, then actually construct the opcode
         if is_valid:
