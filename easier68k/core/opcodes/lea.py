@@ -1,11 +1,13 @@
 from ...core.enum.ea_mode import EAMode
 from ...core.models.assembly_parameter import AssemblyParameter
 from ...core.enum import ea_mode_bin
+from ...core.enum.ea_mode_bin import parse_ea_from_binary
 from ...simulator.m68k import M68K
 from ...core.opcodes.opcode import Opcode
 from ...core.util import opcode_util
 from ...core.enum.op_size import OpSize
 from ..util.parsing import parse_assembly_parameter
+from ..util.split_bits import split_bits
 
 
 class Lea(Opcode):
@@ -179,7 +181,30 @@ class Lea(Opcode):
             the amount of data in words that was used (e.g. extra for immediate
             data) or 0 for not a match
         """
-        return cls([parse_assembly_parameter('(A0)'), parse_assembly_parameter('A0')]), 1  # TODO: Make this proper!
+        assert len(data) >= 2, 'opcode size is at least 1 word'
+
+        # 'big' endian byte order
+        first_word = int.from_bytes(data[0:2], 'big')
+
+        [opcode_bin,
+         register_bin,
+         ones_bin,
+         ea_mode,
+         ea_reg] = split_bits(first_word, [4, 3, 3, 3, 3])
+
+        # check opcode
+        if opcode_bin != 0b0100 or ones_bin != 0b111:  # Second condition to distinguish from TRAP
+            return None
+
+        wordsUsed = 1
+
+        src_EA = parse_ea_from_binary(ea_mode, ea_reg, OpSize.LONG, True, data[wordsUsed * 2:])
+        wordsUsed += src_EA[1]
+
+        dest_EA = AssemblyParameter(EAMode.ARD, register_bin)
+
+        # when making the new Move, need to convert that MoveSize back into an OpSize
+        return cls([src_EA[0], dest_EA])
 
     @classmethod
     def from_str(cls, command: str, parameters: str):

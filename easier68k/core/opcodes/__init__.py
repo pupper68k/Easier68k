@@ -5,5 +5,6 @@ __all__ = [
     'simhalt',
     'cmp',
     'branches',
+    'trap',
     'opcode'
 ]

@@ -11,7 +11,8 @@ valid_opcode_classes = [
     'easier68k.core.opcodes.dc.DC',
     'easier68k.core.opcodes.lea.Lea',
     'easier68k.core.opcodes.cmp.Cmp',
-    'easier68k.core.opcodes.branches.Bra'
+    'easier68k.core.opcodes.branches.Bra',
+    'easier68k.core.opcodes.trap.Trap'
 ]
 
 valid_opcodes = [
