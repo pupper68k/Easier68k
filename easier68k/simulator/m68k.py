@@ -276,30 +276,25 @@ class M68K:
         """
         self.memory.save_memory(file)
 
-    # sets CCR depending on arguments for XNVC, 0/false for clear, 1/true for set, 'i' for ignore
+
     def set_ccr_reg(self, extend, negative, zero, overflow, carry): 
-        if extend != 'i':
-            #assert isinstance(extend, bool) 
+        if extend != None:
             extend = bool(extend)
             self.set_condition_status_code(ConditionStatusCode.X, extend)
             
-        if negative != 'i':
-            #assert isinstance(negative, bool)
+        if negative != None:
             negative = bool(negative)
             self.set_condition_status_code(ConditionStatusCode.N, negative)
             
-        if zero != 'i':
-            #assert isinstance(zero, bool)
+        if zero != None:
             zero = bool(zero)
             self.set_condition_status_code(ConditionStatusCode.Z, zero)
             
-        if overflow != 'i':
-            #assert isinstance(overflow, bool)
+        if overflow != None:
             overflow = bool(overflow)
             self.set_condition_status_code(ConditionStatusCode.V, overflow)
             
-        if carry != 'i':
-            #assert isinstance(carry, bool)
+        if carry != None:
             carry = bool(carry)
             self.set_condition_status_code(ConditionStatusCode.C, carry)
     
