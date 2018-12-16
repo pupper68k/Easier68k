@@ -159,13 +159,14 @@ class Add(Opcode):
         original_negative = src_val.get_negative()
 
         # set the same as the carry bit
-        simulator.set_condition_status_code(ConditionStatusCode.X, carry_bit)
+        simulator.set_carry() if carry_bit else simulator.clear_carry()
         # result is negative
-        simulator.set_condition_status_code(ConditionStatusCode.N, negative)
+        simulator.set_negative if negative else simulator.clear_negative()
         # result is zero
-        simulator.set_condition_status_code(ConditionStatusCode.Z, (total & mask) == 0)
+        simulator.set_zero() if (total & mask) == 0 else simulator.clear_zero()
         # set if an overflow is generated, cleared otherwise
-        simulator.set_condition_status_code(ConditionStatusCode.V, negative != original_negative)
+        simulator.set_overflow() if negative != original_negative else simulator.clear_overflow()
+        
         # set if a carry is generated, cleared otherwise
         simulator.set_condition_status_code(ConditionStatusCode.C, carry_bit)
 

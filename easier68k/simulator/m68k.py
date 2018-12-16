@@ -276,48 +276,25 @@ class M68K:
         """
         self.memory.save_memory(file)
 
-#======== Quick Access Functions for CCR bits ==========
-    def set_zero(self):
-        set_condition_status_code(ConditionStatusCode.Z, True)
-        
-    def check_zero(self):
-        return get_condition_status_code(ConditionStatusCode.Z)
-        
-    def clear_zero(self):
-        set_condition_status_code(ConditionStatusCode.Z, False)
+    # sets CCR depending on arguments for XNVC, 0/false for clear, 1/true for set, 'i' for ignore
+    def set_ccr_reg(self, extend, negative, zero, overflow, carry): 
+        if extend != 'i':
+            assert isinstance(extend, bool) 
+            self.set_condition_status_code(ConditionStatusCode.X, extend)
+            
+        if negative != 'i':
+            assert isinstance(negative, bool)
+            self.set_condition_status_code(ConditionStatusCode.N, negative)
+            
+        if zero != 'i':
+            assert isinstance(zero, bool)
+            self.set_condition_status_code(ConditionStatusCode.Z, zero)
+            
+        if overflow != 'i':
+            assert isinstance(overflow, bool)
+            self.set_condition_status_code(ConditionStatusCode.V, overflow)
+            
+        if carry != 'i':
+            assert isinstance(carry, bool)
+            self.set_condition_status_code(ConditionStatusCode.C, carry)
     
-    def set_extend(self):
-        set_condition_status_code(ConditionStatusCode.X, True)
-        
-    def check_extend(self):
-        return get_condition_status_code(ConditionStatusCode.X)
-        
-    def clear_extend(self):
-        set_condition_status_code(ConditionStatusCode.X, False)
-        
-    def set_negative(self):
-        set_condition_status_code(ConditionStatusCode.N, True)
-        
-    def check_negative(self):
-        return get_condition_status_code(ConditionStatusCode.N)
-        
-    def clear_negative(self):
-        set_condition_status_code(ConditionStatusCode.N, False)
-
-    def set_overflow(self):
-        set_condition_status_code(ConditionStatusCode.V, True)
-        
-    def check_overflow(self):
-        return get_condition_status_code(ConditionStatusCode.V)
-        
-    def clear_overflow(self):
-        set_condition_status_code(ConditionStatusCode.V, False)
-    
-    def set_carry(self):
-        set_condition_status_code(ConditionStatusCode.C, True)
-        
-    def check_carry(self):
-        return get_condition_status_code(ConditionStatusCode.C)
-        
-    def clear_carry(self):
-        set_condition_status_code(ConditionStatusCode.C, False)
