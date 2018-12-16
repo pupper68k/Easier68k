@@ -95,12 +95,8 @@ class Eor(Opcode):
             msb_bit = 0x8000
         elif self.size is OpSize.LONG:
             msb_bit = 0x80000000
-
-        simulator.set_condition_status_code(ConditionStatusCode.N, msb_bit & result_unsigned != 0)
-        simulator.set_condition_status_code(ConditionStatusCode.Z, result_unsigned == 0)
-        simulator.set_condition_status_code(ConditionStatusCode.V, False)
-        simulator.set_condition_status_code(ConditionStatusCode.C, False)
         
+        # set CCR
         simulator.set_ccr_reg('i', (msb_bit & result_unsigned != 0), (result_unsigned == 0), 0, 0)
 
         # and set the value
