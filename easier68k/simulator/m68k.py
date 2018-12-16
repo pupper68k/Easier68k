@@ -152,7 +152,7 @@ class M68K:
         ccr = self.get_register(Register.CCR).get_value_unsigned()
         # ccr is only 1 byte, bit mask away the bit being looked for
         return (ccr & code) > 0
-
+    
     def set_condition_status_code(self, code: ConditionStatusCode, value: bool):
         """
         Sets the status of a code from the Condition Code Register to value
@@ -168,7 +168,7 @@ class M68K:
             v &= ~code
 
         self._set_condition_code_register_value(MemoryValue(OpSize.BYTE, unsigned_int=v))
-
+        
     def run(self):
         """
         Starts the automatic execution
@@ -275,3 +275,49 @@ class M68K:
         NOTE: file must be opened as binary or this won't work
         """
         self.memory.save_memory(file)
+
+#======== Quick Access Functions for CCR bits ==========
+    def set_zero(self):
+        set_condition_status_code(ConditionStatusCode.Z, True)
+        
+    def check_zero(self):
+        return get_condition_status_code(ConditionStatusCode.Z)
+        
+    def clear_zero(self):
+        set_condition_status_code(ConditionStatusCode.Z, False)
+    
+    def set_extend(self):
+        set_condition_status_code(ConditionStatusCode.X, True)
+        
+    def check_extend(self):
+        return get_condition_status_code(ConditionStatusCode.X)
+        
+    def clear_extend(self):
+        set_condition_status_code(ConditionStatusCode.X, False)
+        
+    def set_negative(self):
+        set_condition_status_code(ConditionStatusCode.N, True)
+        
+    def check_negative(self):
+        return get_condition_status_code(ConditionStatusCode.N)
+        
+    def clear_negative(self):
+        set_condition_status_code(ConditionStatusCode.N, False)
+
+    def set_overflow(self):
+        set_condition_status_code(ConditionStatusCode.V, True)
+        
+    def check_overflow(self):
+        return get_condition_status_code(ConditionStatusCode.V)
+        
+    def clear_overflow(self):
+        set_condition_status_code(ConditionStatusCode.V, False)
+    
+    def set_carry(self):
+        set_condition_status_code(ConditionStatusCode.C, True)
+        
+    def check_carry(self):
+        return get_condition_status_code(ConditionStatusCode.C)
+        
+    def clear_carry(self):
+        set_condition_status_code(ConditionStatusCode.C, False)
