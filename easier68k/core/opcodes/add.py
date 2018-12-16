@@ -159,7 +159,7 @@ class Add(Opcode):
         original_negative = src_val.get_negative()
 
         # set the CCR
-        simulator.set_ccr_reg('i', negative, ((total & mask) == 0), (negative != original_negative), carry_bit)
+        simulator.set_ccr_reg(carry_bit, negative, ((total & mask) == 0), (negative != original_negative), carry_bit)
 
         # and set the value
         self.dest.set_value(simulator, MemoryValue(OpSize.LONG, unsigned_int=(total & mask)))
