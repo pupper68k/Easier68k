@@ -279,22 +279,27 @@ class M68K:
     # sets CCR depending on arguments for XNVC, 0/false for clear, 1/true for set, 'i' for ignore
     def set_ccr_reg(self, extend, negative, zero, overflow, carry): 
         if extend != 'i':
-            assert isinstance(extend, bool) 
+            #assert isinstance(extend, bool) 
+            extend = bool(extend)
             self.set_condition_status_code(ConditionStatusCode.X, extend)
             
         if negative != 'i':
-            assert isinstance(negative, bool)
+            #assert isinstance(negative, bool)
+            negative = bool(negative)
             self.set_condition_status_code(ConditionStatusCode.N, negative)
             
         if zero != 'i':
-            assert isinstance(zero, bool)
+            #assert isinstance(zero, bool)
+            zero = bool(zero)
             self.set_condition_status_code(ConditionStatusCode.Z, zero)
             
         if overflow != 'i':
-            assert isinstance(overflow, bool)
+            #assert isinstance(overflow, bool)
+            overflow = bool(overflow)
             self.set_condition_status_code(ConditionStatusCode.V, overflow)
             
         if carry != 'i':
-            assert isinstance(carry, bool)
+            #assert isinstance(carry, bool)
+            carry = bool(carry)
             self.set_condition_status_code(ConditionStatusCode.C, carry)
     
