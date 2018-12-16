@@ -100,6 +100,8 @@ class Eor(Opcode):
         simulator.set_condition_status_code(ConditionStatusCode.Z, result_unsigned == 0)
         simulator.set_condition_status_code(ConditionStatusCode.V, False)
         simulator.set_condition_status_code(ConditionStatusCode.C, False)
+        
+        simulator.set_ccr_reg('i', (msb_bit & result_unsigned != 0), (result_unsigned == 0), 0, 0)
 
         # and set the value
         self.dest.set_value(simulator, MemoryValue(OpSize.LONG, unsigned_int=result_unsigned))

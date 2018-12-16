@@ -145,15 +145,8 @@ class Cmp(Opcode):
 
         # ignore the carry bit
 
-        # set negative w/ (dest - src) < 0
-        simulator.set_negative() if negative else simulator.clear_negative()
-        # set zero w/ (dest_val - src_val) == 0
-        simulator.set_zero() if comparison == 0 else simulator.clear_zero()
-        # set if an overflow occurs
-        simulator.set_overflow() if overflow else simulator.clear_overflow()
-        # set if a borrow occurs
-        # (this is the same as if src > dest)
-        simulator.set_carry() if raw_total < 0 else simulator.clear_carry()
+        # set freakin ccr
+        simulator.set_ccr_reg('i', negative, (comparison == 0), overflow, (raw_total < 0))
 
         # set the number of bytes to increment equal to the length of the
         # instruction (1 word)
