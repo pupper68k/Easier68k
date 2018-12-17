@@ -146,7 +146,7 @@ class Cmp(Opcode):
         # ignore the carry bit
 
         # set freakin ccr
-        simulator.set_ccr_reg('i', negative, (comparison == 0), overflow, (raw_total < 0))
+        simulator.set_ccr_reg(None, negative, (comparison == 0), overflow, (raw_total < 0))
 
         # set the number of bytes to increment equal to the length of the
         # instruction (1 word)
