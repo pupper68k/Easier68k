@@ -278,6 +278,17 @@ class M68K:
 
 
     def set_ccr_reg(self, extend, negative, zero, overflow, carry): 
+        """
+        Accepts Boolean values for X,N,Z,V, and C, respectively and sets the CCR accordingly.
+        Passing None in for any argument will cause it to ignore that bit.
+        Returns nothing.
+        :param extend:
+        :param negative:
+        :param zero:
+        :param overflow:
+        :param carry:
+        :return:
+        """
         if extend != None:
             extend = bool(extend)
             self.set_condition_status_code(ConditionStatusCode.X, extend)
