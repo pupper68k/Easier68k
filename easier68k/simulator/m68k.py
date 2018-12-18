@@ -152,7 +152,7 @@ class M68K:
         ccr = self.get_register(Register.CCR).get_value_unsigned()
         # ccr is only 1 byte, bit mask away the bit being looked for
         return (ccr & code) > 0
-    
+
     def set_condition_status_code(self, code: ConditionStatusCode, value: bool):
         """
         Sets the status of a code from the Condition Code Register to value
@@ -168,7 +168,7 @@ class M68K:
             v &= ~code
 
         self._set_condition_code_register_value(MemoryValue(OpSize.BYTE, unsigned_int=v))
-        
+
     def run(self):
         """
         Starts the automatic execution

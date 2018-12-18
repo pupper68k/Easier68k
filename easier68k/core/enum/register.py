@@ -32,7 +32,7 @@ class Register(IntEnum):
     # Condition Code Register (5 bits in the lower byte)
     CCR = 17
     ConditionCodeRegister = 17
-    
+
 # constants that group together the registers
 DATA_REGISTERS = [Register.D0, Register.D1, Register.D2, Register.D3,
                   Register.D4, Register.D5, Register.D6, Register.D7]
