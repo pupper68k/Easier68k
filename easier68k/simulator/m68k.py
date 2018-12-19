@@ -297,7 +297,7 @@ class M68K:
             negative = bool(negative)
             self.set_condition_status_code(ConditionStatusCode.N, negative)
             
-        if zero != None:
+        if zero is not None:
             zero = bool(zero)
             self.set_condition_status_code(ConditionStatusCode.Z, zero)
             
