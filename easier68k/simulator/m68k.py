@@ -289,7 +289,7 @@ class M68K:
         :param carry:
         :return:
         """
-        if extend != None:
+        if extend is not None:
             extend = bool(extend)
             self.set_condition_status_code(ConditionStatusCode.X, extend)
             
