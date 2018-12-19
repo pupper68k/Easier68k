@@ -305,7 +305,7 @@ class M68K:
             overflow = bool(overflow)
             self.set_condition_status_code(ConditionStatusCode.V, overflow)
             
-        if carry != None:
+        if carry is not None:
             carry = bool(carry)
             self.set_condition_status_code(ConditionStatusCode.C, carry)
     
