@@ -293,7 +293,7 @@ class M68K:
             extend = bool(extend)
             self.set_condition_status_code(ConditionStatusCode.X, extend)
             
-        if negative != None:
+        if negative is not None:
             negative = bool(negative)
             self.set_condition_status_code(ConditionStatusCode.N, negative)
             
