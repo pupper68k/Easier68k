@@ -301,7 +301,7 @@ class M68K:
             zero = bool(zero)
             self.set_condition_status_code(ConditionStatusCode.Z, zero)
             
-        if overflow != None:
+        if overflow is not None:
             overflow = bool(overflow)
             self.set_condition_status_code(ConditionStatusCode.V, overflow)
             
